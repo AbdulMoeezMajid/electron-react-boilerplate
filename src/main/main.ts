@@ -28,7 +28,7 @@ let mainWindow: BrowserWindow | null = null;
 ipcMain.on('ipc-example', async (event, arg) => {
   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
   console.log(msgTemplate(arg));
-  event.reply('ipc-example', msgTemplate('pong'));
+  event.reply('ipc-example', msgTemplate('notUpdated'));
 });
 
 if (process.env.NODE_ENV === 'production') {
@@ -111,6 +111,40 @@ const createWindow = async () => {
   // eslint-disable-next-line
   new AppUpdater();
 };
+function showMessage(message: string): void {
+  mainWindow?.webContents.send('updateMessage', message);
+}
+setTimeout(() => {
+  showMessage('not updated');
+}, 1000);
+autoUpdater.on('update-available', () => {
+  showMessage('update-available');
+});
+autoUpdater.on('checking-for-update', () => {
+  showMessage('checking for update');
+});
+autoUpdater.on('error', (error) => {
+  console.error('Update error: ', error);
+  showMessage(
+    `Update error: ${error == null ? 'unknown' : error.stack || error}`,
+  );
+});
+
+autoUpdater.on('download-progress', (progressInfo) => {
+  const { percent } = progressInfo;
+
+  // Calculate percentage of the download
+  const progress = Math.round(percent);
+
+  // Update progress
+
+  // Optionally show message in the renderer process
+  // You may need to use IPC (Inter-Process Communication) to send this information to the renderer process
+  showMessage(`Downloading... ${progress}% completed`);
+});
+autoUpdater.on('update-available', () => {
+  showMessage('UPDATEHASBEENFOUND');
+});
 
 /**
  * Add event listeners...
